@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: data_lake
+    schema: public
+    database: dataprojects
+    description: Data Lake databse containing all the raw unformatted data sources
+    tables:
+      - name: fetch_users
+        description:
+      - name: fetch_brands
+        description:
+      - name: fetch_receipts
+        description:
+

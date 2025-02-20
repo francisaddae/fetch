@@ -1,0 +1,24 @@
+# def load_raw_data(data_path, table_name):
+#     """This function is a basic function layer which serves as data lake ingestion stage
+
+#     Args:
+#         data_path (string): The name of the file or source of the data
+#         table_name (string): The name of the Table
+#     """
+#     #reading data into pandas dataframe
+#     df = pd.read_json(data_path, lines=True)
+#     print(df.head())
+#     print(df.info())
+
+#     df = df.convert_dtypes()
+
+#     #Setting up connection strings
+#     engine = sqlalchemy.create_engine(
+#         f'postgresql://{os.environ.get("POSTGRES_USERNAME")}:{os.environ.get("POSTGRES_PASSWORD")}@{os.environ.get("POSTGRES_HOSTNAME")}:{os.environ.get("POSTGRES_PORTNUM")}/{os.environ.get("POSTGRES_DATABASE")}')
+#     conn = engine.connect()
+#     df.to_sql(table_name, conn, if_exists="replace")
+
+#     return True
+# load_raw_data('datasets/brands.json', 'fetch_brands')
+# load_raw_data('datasets/receipts.json', 'fetch_receipts')
+# load_raw_data('datasets/users.json', 'fetch_users')
