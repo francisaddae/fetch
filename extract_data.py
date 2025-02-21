@@ -38,7 +38,8 @@ def load_json_data(file_path, column_names, table_name):
                 if '$oid' in record[key].keys():
                     schema_data[key].append(record[key]['$oid'])
                 elif '$date' in record[key].keys():
-                    schema_data[key].append(record[key]['$date'])
+                    time_stamp = record[key]['$date']/ 1e3
+                    schema_data[key].append(dt.datetime.fromtimestamp(time_stamp))
                 else:
                     schema_data[key].append(record[key])
             elif key in record.keys() and (isinstance(record[key], str) or isinstance(record[key], bool)):
@@ -59,13 +60,14 @@ def load_json_data(file_path, column_names, table_name):
     conn = engine.connect()
     df.to_sql(table_name, conn, if_exists="replace", dtype={"cpg": sqlalchemy.types.JSON})
 
-# load_json_data('datasets/brands.json',
-            #    ['_id', 'barcode', 'brandCode', 'category', 'categoryCode', 'cpg', 'topBrand', 'name'], 'fetch_brands')
+load_json_data('datasets/brands.json',
+               ['_id', 'barcode', 'brandCode', 'category', 'categoryCode', 'cpg', 'topBrand', 'name'], 'fetch_brands')
 
 
-# load_json_data('datasets/users.json', ['_id', 'state', 'createdDate', 'lastLogin', 'role', 'active'], 'fetch_users')
+load_json_data('datasets/users.json', ['_id', 'state', 'createdDate', 'lastLogin', 'role', 'active'], 'fetch_users')
 
-# load_json_data('datasets/receipts.json',
-#                ['_id', 'bonusPointsEarned', 'bonusPointsEarnedReason', 'createDate', 'dateScanned', 'finishedDate', 'modifyDate'
-#                 'pointsAwardedDate', 'pointsEarned', 'purchaseDate', 'purchasedItemCount', 'rewardsReceiptItemList', 'rewardsReceiptStatus',
-#                 'totalSpent', 'userId'], 'fetch_receipts')
+load_json_data('datasets/receipts.json',
+               ['_id', 'bonusPointsEarned', 'bonusPointsEarnedReason', 'createDate', 'dateScanned', 'finishedDate', 'modifyDate'
+                'pointsAwardedDate', 'pointsEarned', 'purchaseDate', 'purchasedItemCount', 'rewardsReceiptItemList', 'rewardsReceiptStatus',
+                'totalSpent', 'userId'], 'fetch_receipts')
+
