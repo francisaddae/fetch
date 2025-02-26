@@ -35,6 +35,6 @@ CREATE TABLE IF NOT EXISTS default.fetch_receipts (
     rewardsReceiptItemList TEXT DEFAULT NULL,
     rewardsReceiptStatus TEXT DEFAULT NULL,
     totalSpent FLOAT DEFAULT NULL,
-    userId TEXT DEFAULT NULL
+    userId UUID
 ) ENGINE = MergeTree()
 ORDER BY _id;
