@@ -65,13 +65,13 @@ def load_json_data(file_path, column_names, table_name):
     df = pd.DataFrame.from_dict(schema_data)
     df = df.convert_dtypes()
     print(df.head(10))
-    # print(df.dtypes)
+    print(df.dtypes)
 
-    #Setting up connection strings
-    # engine = sqlalchemy.create_engine(
-    #     f'postgresql://{os.environ.get("POSTGRES_USERNAME")}:{os.environ.get("POSTGRES_PASSWORD")}@{os.environ.get("POSTGRES_HOSTNAME")}:{os.environ.get("POSTGRES_PORTNUM")}/{os.environ.get("POSTGRES_DATABASE")}')
+    # Setting up connection strings
+    engine = sqlalchemy.create_engine(
+        f'postgresql://{os.environ.get("POSTGRES_USERNAME")}:{os.environ.get("POSTGRES_PASSWORD")}@{os.environ.get("POSTGRES_HOSTNAME")}:{os.environ.get("POSTGRES_PORTNUM")}/{os.environ.get("POSTGRES_DATABASE")}')
 
-    # df.to_sql(table_name, engine, if_exists="replace", index=False)
+    df.to_sql(table_name, engine, if_exists="replace", index=False)
 
 
     try:
