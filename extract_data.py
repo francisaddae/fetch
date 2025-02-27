@@ -50,9 +50,9 @@ def load_json_data(file_path, column_names, table_name):
                     time_stamp = record[key]['$date']/ 1e3
                     schema_data[key].append(dt.datetime.fromtimestamp(time_stamp))
                 else:
-                    schema_data[key].append(str(record[key]))
+                    schema_data[key].append(record[key])
             elif key in record.keys() and isinstance(record[key], list):
-                schema_data[key].append(str(record[key][0]))
+                schema_data[key].append(record[key][0])
             elif key in record.keys() and (isinstance(record[key], str) or isinstance(record[key], bool)):
                 schema_data[key].append(str(record[key]))
             elif key in record.keys() and (isinstance(record[key], int) or isinstance(record[key], float)):
@@ -71,13 +71,18 @@ def load_json_data(file_path, column_names, table_name):
     engine = sqlalchemy.create_engine(
         f'postgresql://{os.environ.get("POSTGRES_USERNAME")}:{os.environ.get("POSTGRES_PASSWORD")}@{os.environ.get("POSTGRES_HOSTNAME")}:{os.environ.get("POSTGRES_PORTNUM")}/{os.environ.get("POSTGRES_DATABASE")}')
 
-    df.to_sql(table_name, engine, if_exists="replace", index=False)
+    if table_name == 'fetch_brands':
+       df.to_sql(table_name, engine, if_exists="replace", index=False, dtype= {'cpg': sqlalchemy.JSON})
+    elif table_name == 'fetch_receipts':
+       df.to_sql(table_name, engine, if_exists="replace", index=False, dtype= {'rewardsReceiptItemList': sqlalchemy.JSON})
+    else:
+       df.to_sql(table_name, engine, if_exists="replace", index=False)
 
 
-    try:
-        client.insert(table_name, df)
-    except Exception as e:
-        print(f"Error inserting data: {e}")
+    # try:
+    #     client.insert(table_name, df)
+    # except Exception as e:
+    #     print(f"Error inserting data: {e}")
 
     df.to_csv(f'datasets/{table_name}.csv', index=False)
 
