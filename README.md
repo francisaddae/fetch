@@ -22,6 +22,39 @@ Breakdown of tables for dimension modeling. Use of a star schema is quite resour
 users table
 ![USERS MODELING](/erd/users.png)
 
+``` sql
+
+-- dimension state
+select state, row_number() over(order by state)
+from fetch_users fu
+group by 1;
+-- dimension role
+select role, row_number() over(order by role)
+from fetch_users fu
+group by 1;
+
+-- dimension active
+select active, row_number() over(order by active)
+from fetch_users fu
+group by 1;
+
+-- fact table
+select
+	_id,
+	dense_rank() over(order by state) as state_id,
+	fu."createdDate",
+	fu."lastLogin",
+	dense_rank() over(order by role) as role_id,
+	dense_rank() over(order by active) as active_id
+from fetch_users fu
+group by
+	_id,
+	state,
+	fu."createdDate" ,
+	fu."lastLogin",
+	role,
+	fu.active;
+```
 
 brands table
 ![BRANDS MODELING](/erd/brands.png)
@@ -162,71 +195,77 @@ limit 1;
 
 users table :
 
-	``` sql
-	-- check for missing id (None)
-	select *
-	from fetch_users
-	where _id is null;
+``` sql
+-- check for missing id (None)
+select *
+from fetch_users
+where _id is null;
 
-	-- check for missing state (50 records)
-	select count(*)
-	from fetch_users
-	where state is null;
+-- check for missing state (50 records)
+select count(*)
+from fetch_users
+where state is null;
 
-	-- check for duplicate users (70 unique users are repeated)
-	select _id, count(*)
-	from fetch_users
-	group by _id
-	having count(*) > 1;
+-- check for duplicate users (70 unique users are repeated)
+select _id, count(*)
+from fetch_users
+group by _id
+having count(*) > 1;
 
-	-- check if active is null
-	select count(*)
-	from fetch_users
-	where active is null;
+-- check if active is null
+select count(*)
+from fetch_users
+where active is null;
 
-	-- There are repeated records for serveral users. This will be handled at the data modeling stage
-	```
+-- There are repeated records for serveral users. This will be handled at the data modeling stage. For example
+	select  _id, rank() over(order by _id )
+	from fetch_users fu
+	group by _id;
+	-- This will allow us to see the actual number of users in the database.
+```
 brands table:
 
-	``` sql
-    -- check for mising brandCode (234)
-	select fetch_brands."brandCode"
-	from fetch_brands
-	where fetch_brands."brandCode" is null;
+``` sql
+-- check for mising brandCode (234)
+select fetch_brands."brandCode"
+from fetch_brands
+where fetch_brands."brandCode" is null;
 
-	-- check for missing barcode (0)
-	select fetch_brands."barcode"
-	from fetch_brands
-	where fetch_brands."barcode" is null;
+-- check for missing barcode (0)
+select fetch_brands."barcode"
+from fetch_brands
+where fetch_brands."barcode" is null;
 
-    --What are the topbrands names with missing brandCode?
-	select fetch_brands."name" , count(*)
-	from fetch_brands
-	where fetch_brands."brandCode" is null
-		and fetch_brands."topBrand" = 'True'
-	group by 1;
+--What are the topbrands names with missing brandCode?
+select fetch_brands."name" , count(*)
+from fetch_brands
+where fetch_brands."brandCode" is null
+	and fetch_brands."topBrand" = 'True'
+group by 1;
 
-	-- Each barcode should be attributed to a brandCode, especially when it's associated with a partivular brand name. Missing brandcode will definately hinder the perfomance when querying for receipts.
-	```
+-- Each barcode should be attributed to a brandCode, especially when it's associated with a partivular brand name. Missing brandcode will definately hinder the perfomance when querying for receipts.
+```
 
 receipts:
 
-	``` sql
-	-- checking if barcode and brandCode is null
-	select count(*) --> 558
-	from fetch_receipts
-	where fetch_receipts."rewardsReceiptItemList" -> 'barcode' is null;
+``` sql
+-- checking if barcode and brandCode is null
+select count(*) --> 558
+from fetch_receipts
+where fetch_receipts."rewardsReceiptItemList" -> 'barcode' is null;
 
 
-	select count(*) --> 1041
-	from fetch_receipts
-	where fetch_receipts."rewardsReceiptItemList" -> 'brandCode' is null;
+select count(*) --> 1041
+from fetch_receipts
+where fetch_receipts."rewardsReceiptItemList" -> 'brandCode' is null;
 
-	-- missing userId --> 0
-	select fetch_receipts."userId"
-	from fetch_receipts
-	where fetch_receipts."userId" is null;
-	```
+-- missing userId --> 0
+select fetch_receipts."userId"
+from fetch_receipts
+where fetch_receipts."userId" is null;
+
+-- Missing barcode and brandcode will hinder the results of our queries and analysis going forward. A deeper dive into companies with missing ids needs to evaluated especially if they are active.
+```
 
 ## PART 4. STAKEHOLDERS COMMUNICATIONS
 
