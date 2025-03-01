@@ -161,19 +161,72 @@ limit 1;
 ## PART 3. DATA QUALITY ISSUE
 
 users table :
-    check for missing id
-    check for cratedDate
-    check if active is null
 
+	``` sql
+	-- check for missing id (None)
+	select *
+	from fetch_users
+	where _id is null;
+
+	-- check for missing state (50 records)
+	select count(*)
+	from fetch_users
+	where state is null;
+
+	-- check for duplicate users (70 unique users are repeated)
+	select _id, count(*)
+	from fetch_users
+	group by _id
+	having count(*) > 1;
+
+	-- check if active is null
+	select count(*)
+	from fetch_users
+	where active is null;
+
+	-- There are repeated records for serveral users. This will be handled at the data modeling stage
+	```
 brands table:
-    check for mising brandCode
-    check for distinct counts of brandId and brandCode
-    breakdown of cpgs column
-    check topBrand
-    check for any missing brandname
 
-receipts
+	``` sql
+    -- check for mising brandCode (234)
+	select fetch_brands."brandCode"
+	from fetch_brands
+	where fetch_brands."brandCode" is null;
 
+	-- check for missing barcode (0)
+	select fetch_brands."barcode"
+	from fetch_brands
+	where fetch_brands."barcode" is null;
+
+    --What are the topbrands names with missing brandCode?
+	select fetch_brands."name" , count(*)
+	from fetch_brands
+	where fetch_brands."brandCode" is null
+		and fetch_brands."topBrand" = 'True'
+	group by 1;
+
+	-- Each barcode should be attributed to a brandCode, especially when it's associated with a partivular brand name. Missing brandcode will definately hinder the perfomance when querying for receipts.
+	```
+
+receipts:
+
+	``` sql
+	-- checking if barcode and brandCode is null
+	select count(*) --> 558
+	from fetch_receipts
+	where fetch_receipts."rewardsReceiptItemList" -> 'barcode' is null;
+
+
+	select count(*) --> 1041
+	from fetch_receipts
+	where fetch_receipts."rewardsReceiptItemList" -> 'brandCode' is null;
+
+	-- missing userId --> 0
+	select fetch_receipts."userId"
+	from fetch_receipts
+	where fetch_receipts."userId" is null;
+	```
 
 ## PART 4. STAKEHOLDERS COMMUNICATIONS
 
