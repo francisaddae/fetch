@@ -19,48 +19,114 @@ Potential Relationship: If products in fetch_receipts contain brand details, a l
 
 Breakdown of tables for dimension modeling. Use of a star schema is quite resourceful here
 
-users table
+### users table
 ![USERS MODELING](/erd/users.png)
 
 ``` sql
-
 -- dimension state
-select state, row_number() over(order by state)
+select state, row_number() over(order by state) as state_id
 from fetch_users fu
 group by 1;
 -- dimension role
-select role, row_number() over(order by role)
+select role, row_number() over(order by role) as role_id
 from fetch_users fu
 group by 1;
 
 -- dimension active
-select active, row_number() over(order by active)
+select active, row_number() over(order by active) as active_id
 from fetch_users fu
 group by 1;
 
 -- fact table
 select
 	_id,
-	dense_rank() over(order by state) as state_id,
+	dense_rank() over(order by fu."state") as state_id,
 	fu."createdDate",
 	fu."lastLogin",
-	dense_rank() over(order by role) as role_id,
-	dense_rank() over(order by active) as active_id
+	dense_rank() over(order by fu."role") as role_id,
+	dense_rank() over(order by fu."active") as active_id
 from fetch_users fu
 group by
-	_id,
-	state,
+	fu._id,
+	fu."state",
 	fu."createdDate" ,
 	fu."lastLogin",
-	role,
-	fu.active;
+	fu."role",
+	fu."active";
 ```
 
-brands table
+### brands table
 ![BRANDS MODELING](/erd/brands.png)
 
+``` sql
+--dimension topbrand
+select
+	row_number() over(order by fb."topBrand") as topbrand_id,
+	fb."topBrand"
+from fetch_brands fb
+group by fb."topBrand";
 
-receipts table
+-- dimension brand_name
+select
+	row_number() over(order by fb.name) as brand_name_id,
+	fb.name
+from fetch_brands fb
+group by fb.name;
+
+-- dimension brandCode
+select
+	row_number() over(order by fb."brandCode") as brandCode_id,
+	fb."brandCode"
+from fetch_brands fb
+group by fb."brandCode";
+
+-- dimension category
+select
+	row_number() over(order by fetch_brands.category) as category_id,
+	fb.category,
+	upper(replace(replace(fb.category, ' & ', '_AND_'), ' ', '_')) as categoryCode
+from fetch_brands fb
+group by fetch_brands.category;
+
+-- dimension barcode
+select
+	row_number() over(order by fb.barcode) as barcode_id,
+	fb.barcode
+from fetch_brands fb
+group by fb.barcode;
+
+
+-- dimension cpg
+select
+	row_number() over(order by (fb."cpg" -> '$ref')::text, (fb."cpg" -> '$id' -> '$oid')::text) as cpg_id,
+	(fb."cpg" -> '$ref')::text as cpg,
+	(fb."cpg" -> '$id' -> '$oid')::text as cpg_ref_id
+from fetch_brands fb
+group by (fb."cpg" -> '$ref')::text, (fb."cpg" -> '$id' -> '$oid')::text;
+
+-- fact table brandsInfo
+select
+	_id,
+	dense_rank() over (order by fb.barcode) as barcode_id,
+	dense_rank() over(order by fb."brandCode") as brandcode_id,
+	dense_rank() over(order by fb.category) as category_id,
+	dense_rank() over(order by fb."topBrand") as topbrand_id,
+	dense_rank() over(order by (fb."cpg" -> '$ref')::text, (fb."cpg" -> '$id' -> '$oid')::text) as cpg_id,
+	dense_rank() over(order by fb.name) as name_id
+from fetch_brands fb
+group by _id,
+	fb.barcode,
+	fb."brandCode",
+	fb.category,
+	fb."topBrand",
+	(fb."cpg" -> '$ref')::text,
+	(fb."cpg" -> '$id' -> '$oid')::text,
+	fb.name;
+```
+
+### receipts table
+
+(modeling technique used for both brands and users table will be used here!)
 ![RECEIPTS MODELING](/erd/receipts.png)
 
 ## PART 2:  SQL Question
@@ -243,6 +309,10 @@ where fetch_brands."brandCode" is null
 	and fetch_brands."topBrand" = 'True'
 group by 1;
 
+select fetch_brands."topBrand", count(*) -- 612 missing records
+from fetch_brands
+group by 1;
+
 -- Each barcode should be attributed to a brandCode, especially when it's associated with a partivular brand name. Missing brandcode will definately hinder the perfomance when querying for receipts.
 ```
 
@@ -269,11 +339,33 @@ where fetch_receipts."userId" is null;
 
 ## PART 4. STAKEHOLDERS COMMUNICATIONS
 
+### **Subject:** Data Quality Issues and Recommendations for Improvement
 
+Hi Product Manager/Stateholders,
 
+During our data review, we identified several inconsistencies that could impact analysis and decision-making. Here are the key issues:
 
+1. **Missing User State Information** – Every user should have a state and a creation timestamp for accurate tracking.
+2. **Brand Data Inconsistencies** –
+   - The `categoryCode` field seems irrelevant, while missing `category` values are problematic.
+   - Cases where `brandCode` is missing reduce data integrity, especially when barcodes are available.
+   - Having a product linked to a brand without a `brandCode` lowers confidence in brand-level analytics.
+3. **Receipt Data Gaps** – Missing `barcode` and `brandCode` in `rewardsReceiptItemList` make it difficult to refine analysis.
 
+### **Recommendations to Improve Data Quality:**
+- Replace missing boolean values with a default **false** flag to maintain consistency.
+- Set a **default state** for users if not provided.
+- Ensure **both `barcode` and `brandCode`** are required in receipts to strengthen data reliability.
 
+### **Performance & Scalability Considerations:**
+- Adding an **ingestion timestamp** to track data loads will improve batch processing in ETL frameworks.
+- The **users table should act as a trigger table**, updating only when a user is created, deactivated, or logs in.
+- These measures will **optimize performance** as data volume grows, making production workloads more efficient.
+
+Let me know your thoughts, and I’m happy to discuss further!
+
+Best,
+[Your Name]
 
 
 
